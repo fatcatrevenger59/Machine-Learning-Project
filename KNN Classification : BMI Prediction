@@ -157,3 +157,9 @@ def KNNC_predict(X_Train, Y_Train, X_Test, best_K):
     all_sorted_target = KNN_find_sorted_target_each_data(Y_Train, all_distance)
     Yhat_Test = KNNC_find_class_each_data(all_sorted_target, best_K)
     return Yhat_Test
+
+#-----------------------------------------------------------------การเรียกใช้งานเพื่อแสดงผลจริง---------------------------------------------------------------------------#
+best_K = KNNC_fit(X_Train, Y_Train, X_Valid, Y_Valid, min_K, max_K)
+best_K    #จะได้ว่า error ตัวที่เท่าไรต่ำสุด
+
+KNNC_predict(X_Train, Y_Train, X_Test, best_K)  #ต้องเรียก fit ก่อนเพื่อรับค่า K ที่ดีที่สุดเก็บไว้ใน parameter  best_K  จากนั้นค่อยเรียกใช้
