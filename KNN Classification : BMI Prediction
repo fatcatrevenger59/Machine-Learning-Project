@@ -176,5 +176,7 @@ compare
 error_Test = find_error_classification(Y_Test , Yhat_Test)
 print(f'เมื่อเทียบข้อมูลจริง กับ ข้อมูลพยากรณ์ มีความแม่นยำ {100 - error_Test} %')
 
-
+#หา error ในค่า K แต่ละตัวใน TestSet
+KNNC_fit(X_Train, Y_Train, X_Test, Y_Test, min_K, max_K)
+                           #เปลี่ยนตรง X และ Y _Valid เป็นชุดของ X และ Y _Test
 
