@@ -160,6 +160,21 @@ def KNNC_predict(X_Train, Y_Train, X_Test, best_K):
 
 #-----------------------------------------------------------------การเรียกใช้งานเพื่อแสดงผลจริง---------------------------------------------------------------------------#
 best_K = KNNC_fit(X_Train, Y_Train, X_Valid, Y_Valid, min_K, max_K)
-best_K    #จะได้ว่า error ตัวที่เท่าไรต่ำสุด
+best_K          #จะได้ว่า error ของ K ตัวที่เท่าไรต่ำสุด
 
-KNNC_predict(X_Train, Y_Train, X_Test, best_K)  #ต้องเรียก fit ก่อนเพื่อรับค่า K ที่ดีที่สุดเก็บไว้ใน parameter  best_K  จากนั้นค่อยเรียกใช้
+
+
+Yhat_Test = KNNC_predict(X_Train, Y_Train, X_Test, best_K)  #ต้องเรียก fit ก่อนเพื่อรับค่า K ที่ดีที่สุดเก็บไว้ใน parameter  best_K  จากนั้นค่อยเรียกใช้
+Yhat_Test       # หาผลการพยากรณ์ข้อมูล
+
+
+# เปรียบเทียบข้อมูล
+compare = np.hstack([Yhat_Test , Y_Test])
+compare
+
+#สรุปว่าแม่นยำกี่ % 
+error_Test = find_error_classification(Y_Test , Yhat_Test)
+print(f'เมื่อเทียบข้อมูลจริง กับ ข้อมูลพยากรณ์ มีความแม่นยำ {100 - error_Test} %')
+
+
+
