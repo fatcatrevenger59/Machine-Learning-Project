@@ -1,0 +1,159 @@
+##Import Libary##
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+%matplotlib inline
+
+
+##Data Preparation##
+
+Data = pd.read_excel('BMI_Dataset_Classification.xlsx',usecols='A:C')   #ใช้ colum A ถึง C ใน excel ในนี้ A , B คือ feature ส่วน C คือ Target
+Data
+
+#แปลงเป็น Array
+DataMatrix = Data.values
+DataMatrix
+
+DataMatrix.shape
+
+D = DataMatrix.shape[1] - 1               #cols สุดท้ายเป็น Target จะเอาแค่ Feature จึง -1
+D
+
+X = DataMatrix[:,:D]
+X = np.array(X, dtype=np.float32)
+Y = DataMatrix[:,D:]
+
+#ระบุช่วง เพื่อแบ่งกลุ่มข้อมูล
+start_train = 0
+end_train = -300
+end_valid = -150
+#end test เป็น -1 //สุดท้าย// ต้องระวัง
+
+#แบ่งประเภทของกลุ่มข้อมูลใน DataSet ผ่านช่วงของตำแหน่งแถว 
+X_Train = X[start_train : end_train , :]  #Training set ทั้งหมด 
+Y_Train = Y[start_train : end_train , :]  #Target ทั้งหมด ของ Training set
+
+X_Valid = X[end_train : end_valid , :]  #เอา end train ถึง end valid  เพราะตารางมันจะแบ่งเอาไว้เป็นแนวยาว ให้เราตัดเอาเอง
+Y_Valid = Y[end_train : end_valid , :]  #เอา Target ของ Valid 
+
+X_Test = X[end_valid: , :]
+Y_Test = Y[end_valid: , :]
+
+## Write Function ##
+# Normalization
+
+def minmaxNorm(Data, _min, _max):
+    Data_Norm = ((Data - _min)/(_max - _min))
+    return Data_Norm
+    
+def min4norm(Data):
+    _min = Data.min(axis=0 , keepdims = True)
+    return _min
+    
+def max4norm(Data):
+    _max = Data.max(axis=0 , keepdims = True)
+    return _max
+    
+# วัดระยะห่างระหว่างข้อมูลทุกตัวใน Validation Set กับ ทุก Example ใน Training Set
+
+def KNN_find_distance_each_data(X_Train, X_Valid):
+    all_distance = []
+    for x_valid in X_Valid:
+        distance = KNN_find_distance(X_Train, x_valid)
+        all_distance.append(distance)
+    return all_distance
+
+def KNN_find_distance(X_Train, x_valid):
+    distance2 = ((X_Train - x_valid)**2).sum(axis=1)
+    distance = np.sqrt(distance2)
+    return distance
+
+#เรียงลำดับ Target ตามระยะห่าง
+
+def KNN_find_sorted_target_each_data(Y_Train, all_distance):
+    all_sorted_target = []
+    for distance in all_distance:
+        sorted_target = KNN_sort_target_by_distance(Y_Train, distance)
+        all_sorted_target.append(sorted_target)
+    return all_sorted_target
+
+def KNN_sort_target_by_distance(Y_Train, distance):
+    sorted_target = Y_Train[distance.argsort()]
+    return sorted_target
+    
+#หาผลลัพธ์ที่ใกล้ที่สุด K ตัว (กำหนดให้ K จำนวนเท่านั้นตัวมี Target แสดงออกมาว่าเป็นอะไร)
+# เป็นการคัดเลือกแบบ majority vote
+
+def KNNC_find_class_each_data(all_sorted_target, K):
+    all_class = []
+    for sorted_target in all_sorted_target:
+        _class = KNNC_find_class(sorted_target, K)
+        all_class.append(_class)
+    all_class = np.array(all_class).reshape(-1, 1)          #ตำแหน่งมิติของ array ที่ -1 ตัวเดียว แปลว่าตำแหน่งที่ -1 นั้น โปรแกรมจะคำนวนและทำให้อัตโนมัติ
+    return all_class
+
+def KNNC_find_class(sorted_target, K):
+    unique, count_unique = np.unique(sorted_target[:K, :], return_counts = True)
+    _class = unique[count_unique.argmax()]
+    return _class
+    
+#หา error ของ K แต่ละค่า และหา K ที่ทำให้ error บน Validation Set ต่ำที่สุด
+
+def KNNC_find_error_each_K(Y_Valid, all_sorted_target, min_K, max_K):
+    K_list = [K for K in range(min_K, max_K + 1)]
+    error_list = []
+    for K in K_list:
+        K_all_class = KNNC_find_class_each_data(all_sorted_target, K)
+        K_error = find_error_classification(Y_Valid, K_all_class)
+        error_list.append(K_error)
+    return K_list, error_list
+
+def find_error_classification(Y, Yhat):
+    N = Y.shape[0]
+    error = (100/N)*(Y != Yhat).sum()
+    return error
+
+def KNN_find_best_K(K_list, error_list):
+    K_list = np.array(K_list)
+    error_list = np.array(error_list)
+    plt.plot(K_list, error_list)
+    plt.xlabel('K')
+    plt.ylabel('Error')
+    sorted_K = K_list[error_list.argsort()]
+    error_list.sort()
+    best_K = sorted_K[0]
+    print(best_K)
+    print()
+    L = len(K_list)
+    for l in range(L):
+        print('K :', sorted_K[l], ', error :', error_list[l])
+    return best_K
+    
+#--------------------- ส่วนใช้งานจริง ---------------------#
+
+min_K = 1  #เริ่มต้น K ตัวที่น้อยที่สุด
+max_K = 30  # จะเอา K กี่ตัวมากสุด (สมมติเอาไว้เป็น 30)
+
+
+##เรียนรู้##
+def KNNC_fit(X_Train, Y_Train, X_Valid, Y_Valid, min_K, max_K):
+    _min = min4norm(X_Train)
+    _max = max4norm(X_Train)
+    X_Train_Norm = minmaxNorm(X_Train, _min, _max)
+    X_Valid_Norm = minmaxNorm(X_Valid, _min, _max)
+    all_distance = KNN_find_distance_each_data(X_Train_Norm,X_Valid_Norm)
+    all_sorted_target = KNN_find_sorted_target_each_data(Y_Train,all_distance)
+    K_list, error_list = KNNC_find_error_each_K(Y_Valid,all_sorted_target,min_K, max_K)
+    best_K = KNN_find_best_K(K_list, error_list)
+    return best_K
+    
+#พยากรณ์
+def KNNC_predict(X_Train, Y_Train, X_Test, best_K):
+    _min = min4norm(X_Train)
+    _max = max4norm(X_Train)
+    X_Train_Norm = minmaxNorm(X_Train, _min, _max)
+    X_Test_Norm = minmaxNorm(X_Test, _min, _max)
+    all_distance = KNN_find_distance_each_data(X_Train, X_Test)
+    all_sorted_target = KNN_find_sorted_target_each_data(Y_Train, all_distance)
+    Yhat_Test = KNNC_find_class_each_data(all_sorted_target, best_K)
+    return Yhat_Test
